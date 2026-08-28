@@ -1,10 +1,10 @@
 # SMS login for a nonprofit service
 
-Keep it pragmatic: check the login payload on your side, then hand the one-time code to Infrai for confirmation. That single small service also sticks donor receipts, volunteer reminders, and campaign reports onto the verified member, so later jobs get a real domain record instead of a bare phone string.
+I validate the login payload locally, then hand the one-time code to Infrai using one key. That same small service pins donor receipts, volunteer reminders, and campaign reports to the verified member. Downstream jobs get a domain record instead of a floating phone string.
 
 ## Runnable path
 
-Make a key and put it in `INFRAI_API_KEY`; point `DEMO_PHONE` at a test number. Then run:
+Generate a key and export it as `INFRAI_API_KEY`; put a test number in `DEMO_PHONE`. Then run:
 
 ```bash
 npm install
@@ -12,17 +12,17 @@ npm run test
 npm run demo
 ```
 
-The test passes with `{ phone: "+15551234567", code: "123456" }` and fails on a short phone or code. The demo asks for a code via `infrai.sms.otp`, checks the given code with `infrai.sms.verify`, and prints the member record it built.
+The test passes with `{ phone: "+15551234567", code: "123456" }` and fails on a short phone or code. The demo asks for a code via `infrai.sms.otp`, checks it with `infrai.sms.verify`, and logs the member record.
 
 ## Why this shape
 
-`src/nonprofit.ts` is where the explanation starts. Zod handles the request boundary; the reusable `src/infrai.ts` module deals with the Bearer header, explicit POST, envelope-first errors, and exponential 429 retry. Every write carries a deterministic `Idempotency-Key`, so a retried send is the same login attempt, not a duplicate.
+`src/nonprofit.ts` explains the flow. Zod guards the request shape; the shared `src/infrai.ts` module handles the Bearer header, explicit POST, envelope-first errors, and exponential backoff on 429. Every write gets a deterministic `Idempotency-Key`, so a retried send maps to the same login attempt.
 
-These are plain REST calls behind one `INFRAI_API_KEY`, so an AI-infrastructure engineer can follow the request without pulling in a heavy SDK. The API key stays out of source and test fixtures.
+Those calls are plain REST behind one `INFRAI_API_KEY`, which keeps the example easy to follow for an infra dev who'd rather trace the request than pull in a heavy SDK. The API key stays out of source and test fixtures.
 
 ## Extending the record
 
-Once verified, add receipt IDs to `donorReceipts`, reminder IDs to `volunteerReminders`, or report IDs to `campaignReports`. Keeping those lists next to the phone makes the auth result clear and lets delivery/reporting work stay separate from OTP transport.
+Once verified, tack receipt IDs onto `donorReceipts`, reminder IDs onto `volunteerReminders`, and report IDs onto `campaignReports`. Storing those lists next to the phone keeps the auth result clear and lets delivery/reporting run independent of the OTP step.
 
 ## License
 
@@ -30,7 +30,7 @@ MIT
 
 ## Production notes: Nonprofit SMS OTP Service
 
-That was the happy path. The production checklist below applies to Nonprofit SMS OTP Service.
+Above is the happy path. The production checklist: The details below apply to Nonprofit SMS OTP Service.
 
 **Account & key**
 
